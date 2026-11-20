@@ -1,4 +1,4 @@
-package com.pluralsight.dealershipmanager;
+package model;
 import java.math.BigDecimal;
 public class Vehicle {
 

@@ -1,4 +1,8 @@
-package com.pluralsight.dealershipmanager;
+package ui;
+import data.DealershipFileManager;
+import model.Dealership;
+import model.Vehicle;
+
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Scanner;
