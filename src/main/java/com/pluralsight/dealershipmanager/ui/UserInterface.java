@@ -2,14 +2,21 @@ package com.pluralsight.dealershipmanager.ui;
 import com.pluralsight.dealershipmanager.data.DealershipFileManager;
 import com.pluralsight.dealershipmanager.model.Dealership;
 import com.pluralsight.dealershipmanager.model.Vehicle;
+import com.pluralsight.dealershipmanager.model.LeaseContract;
+import com.pluralsight.dealershipmanager.model.SalesContract;
+import com.pluralsight.dealershipmanager.model.Contract;
+import com.pluralsight.dealershipmanager.data.ContractDataManager;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Locale;
 import java.util.Scanner;
+import java.time.LocalDate;
 public class UserInterface {
 
     private Dealership dealership;
     private DealershipFileManager fileManager;
+    private final ContractDataManager contractDataManager = new ContractDataManager();
     private final Scanner scanner = new Scanner(System.in);
 
     public UserInterface() {
@@ -57,6 +64,9 @@ public class UserInterface {
                 case 9:
                     processRemoveVehicleRequest();
                     break;
+                case 10:
+                    processSellOrLeaseRequest();
+                    break;
                 case 99:
                     System.out.println("Goodbye!");
                     running = false;
@@ -85,6 +95,7 @@ public class UserInterface {
         System.out.println("7 - List ALL vehicles");
         System.out.println("8 - Add a vehicle");
         System.out.println("9 - Remove a vehicle");
+        System.out.println("10 - Sell or lease a vehicle");
         System.out.println("99 - Quit");
         System.out.print("Enter your choice: ");
     }
@@ -127,6 +138,28 @@ public class UserInterface {
                 System.out.println("Enter a valid amount like, 7777.77");
             }
         }
+    }
+
+    private boolean readYesNo(String prompt) {
+        while (true) {
+            String answer  = readText(prompt).toLowerCase();
+            if (answer.equals("yes") || answer.equals("y")) {
+                return true;
+            }
+            if (answer.equals("no") ||answer.equals("n")) {
+                return false;
+            }
+            System.out.println("Please type yes or no.");
+        }
+    }
+
+    private Vehicle findVehicleByVin(int vin) {
+        for (Vehicle vehicle : dealership.getAllVehicles()) {
+            if (vehicle.getVin() == vin) {
+                return vehicle;
+            }
+        }
+        return null;
     }
 
     public void processGetByPriceRequest() {
@@ -181,13 +214,7 @@ public class UserInterface {
     public void processRemoveVehicleRequest() {
         int vin = readInt("VIN of the vehicle to remove: ");
 
-        Vehicle match = null;
-        for (Vehicle vehicle : dealership.getAllVehicles()) {
-            if (vehicle.getVin() == vin) {
-                match = vehicle;
-                break;
-            }
-        }
+        Vehicle match = findVehicleByVin(vin);
 
         if (match == null) {
             System.out.println("No vehicle found with that VIN.");
@@ -197,6 +224,50 @@ public class UserInterface {
         dealership.removeVehicle(match);
         fileManager.saveDealership(dealership);
         System.out.println("Vehicle removed.");
+    }
+
+    public void processSellOrLeaseRequest() {
+        int vin = readInt("VIN of the vehicle: ");
+        Vehicle vehicle = findVehicleByVin(vin);
+        if (vehicle == null) {
+            System.out.println("No vehicle found with that VIN.");
+            return;
+        }
+
+        String name = readText("Customer name: ");
+        String email = readText("Customer email: ");
+
+        String choice;
+        while (true) {
+            choice = readText("Sale or lease? (sale/lease): ").toLowerCase();
+            if (choice.equals("sale") || choice.equals("lease")) {
+                break;
+            }
+            System.out.println("Please type sale or lease.");
+        }
+
+        int vehicleAge = LocalDate.now().getYear() - vehicle.getYear();
+        if (choice.equals("lease") && vehicleAge > 3) {
+            System.out.println("A vehicle over 3 years old can't be leased");
+            return;
+        }
+
+        LocalDate today = LocalDate.now();
+        Contract contract;
+        if (choice.equals("sale")) {
+            boolean finance = readYesNo("Finance this vehicle? (yes/no): ");
+            contract = new SalesContract(today, name, email, vehicle, finance);
+        } else {
+            contract = new LeaseContract(today, name, email, vehicle);
+        }
+
+        System.out.printf("Total price: $%,.2f%n", contract.getTotalPrice());
+        System.out.printf("Monthly payment: $%,.2f%n", contract.getMonthlyPayment());
+        contractDataManager.saveContract(contract);
+
+        dealership.removeVehicle(vehicle);
+        fileManager.saveDealership(dealership);
+        System.out.println("Contract saved and vehicle removed from inventory");
     }
 
     public void processGetAllVehiclesRequest() {
