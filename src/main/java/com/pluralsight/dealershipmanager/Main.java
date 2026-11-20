@@ -1,6 +1,6 @@
 package com.pluralsight.dealershipmanager;
 
-import ui.UserInterface;
+import com.pluralsight.dealershipmanager.ui.UserInterface;
 
 public class Main {
     public static void main(String[] args) {
